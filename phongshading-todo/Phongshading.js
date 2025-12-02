@@ -64,39 +64,95 @@ function initParameters(){
 
 
 /***窗口加载时调用:程序环境初始化程序********/
+/***窗口加载时调用:程序环境初始化程序********/
 window.onload = function() {
-	canvas = document.getElementById("canvas");
+    canvas = document.getElementById("canvas");
     gl = canvas.getContext('webgl2');
     if ( !gl ) { alert( "WebGL isn't available" ); }
 
-	program = initShaders( gl, "shaders/box.vert", "shaders/box.frag" );//初始化shader
-	skyboxProgram = initShaders( gl, "shaders/skybox.vert", "shaders/skybox.frag");
-	lampPorgram = initShaders(gl, "shaders/lamp.vert", "shaders/lamp.frag");
-	depthProgram = initShaders(gl, "shaders/depth.vert", "shaders/depth.frag");
+    program = initShaders( gl, "shaders/box.vert", "shaders/box.frag" );//初始化shader
+    skyboxProgram = initShaders( gl, "shaders/skybox.vert", "shaders/skybox.frag");
+    lampPorgram = initShaders(gl, "shaders/lamp.vert", "shaders/lamp.frag");
+    depthProgram = initShaders(gl, "shaders/depth.vert", "shaders/depth.frag");
 
-	gl.enable(gl.DEPTH_TEST); //开启深度缓存
+    gl.enable(gl.DEPTH_TEST); //开启深度缓存
     gl.depthFunc(gl.LEQUAL);
-	gl.clearColor(0.737255, 0.745098, 0.752941, 1.0); //设置背景色 
-	canvas.width = document.body.clientWidth;    
+    gl.clearColor(0.737255, 0.745098, 0.752941, 1.0); //设置背景色 
+    canvas.width = document.body.clientWidth;    
     canvas.height = document.body.clientHeight;   
-	gl.viewport( (canvas.width-canvas.height)/2, 0, canvas.height, canvas.height);
-	
-	//设置界面控制可调参数初值
-	initParameters();
-	
-  	//生成顶点属性数据并保存到顶点数组VBO，Associate out shader variables with our data buffer and variable
-	cubenumPoints=colorCube(1.0); 	
-	floornumPoints=plane(10.0);
-	skyboxnumPoints=colorCube(80); 
-	lampnumPoints=colorCube(0.05);
+    gl.viewport( (canvas.width-canvas.height)/2, 0, canvas.height, canvas.height);
+    
+    //设置界面控制可调参数初值
+    initParameters();
+    
+    // 添加纹理加载调试
+    console.log("=== Starting texture loading debug ===");
+    const cubeTexImage = document.getElementById("cubeTexImage");
+    const planeTexImage = document.getElementById("planeTexImage");
+    console.log("DOM elements check:");
+    console.log("- cubeTexImage element:", cubeTexImage ? "FOUND" : "NOT FOUND");
+    console.log("- planeTexImage element:", planeTexImage ? "FOUND" : "NOT FOUND");
+    
+    if (!cubeTexImage || !planeTexImage) {
+        console.error("!!! CRITICAL ERROR: Texture image elements not found in DOM !!!");
+        console.error("Make sure you have <img> elements with IDs 'cubeTexImage' and 'planeTexImage' in your HTML");
+    } else {
+        console.log("Texture image elements found:");
+        console.log("- Cube texture src:", cubeTexImage.src);
+        console.log("- Plane texture src:", planeTexImage.src);
+        
+        // 检查图像是否已经加载
+        console.log("Initial load status:");
+        console.log("- Cube image loaded:", cubeTexImage.complete, "Dimensions:", cubeTexImage.width + "x" + cubeTexImage.height);
+        console.log("- Plane image loaded:", planeTexImage.complete, "Dimensions:", planeTexImage.width + "x" + planeTexImage.height);
+        
+        // 如果图像尚未加载完成，添加加载事件监听
+        if (!cubeTexImage.complete) {
+            console.warn("Cube texture image not fully loaded yet. Waiting for load event...");
+            cubeTexImage.addEventListener('load', function() {
+                console.log("✓ Cube texture image loaded successfully! Dimensions:", this.width + "x" + this.height);
+                // 重新渲染以显示纹理
+                setTimeout(render, 100);
+            });
+            cubeTexImage.addEventListener('error', function(e) {
+                console.error("✗ Failed to load cube texture image:", e);
+            });
+        }
+        
+        if (!planeTexImage.complete) {
+            console.warn("Plane texture image not fully loaded yet. Waiting for load event...");
+            planeTexImage.addEventListener('load', function() {
+                console.log("✓ Plane texture image loaded successfully! Dimensions:", this.width + "x" + this.height);
+                // 重新渲染以显示纹理
+                setTimeout(render, 100);
+            });
+            planeTexImage.addEventListener('error', function(e) {
+                console.error("✗ Failed to load plane texture image:", e);
+            });
+        }
+        
+        // 强制检查图像源是否正确
+        if (!cubeTexImage.src.includes('container.png')) {
+            console.warn("Cube texture source might be incorrect. Expected 'container.png' but got:", cubeTexImage.src);
+        }
+        if (!planeTexImage.src.includes('wood.png')) {
+            console.warn("Plane texture source might be incorrect. Expected 'wood.png' but got:", planeTexImage.src);
+        }
+    }
+    
+    // 生成顶点属性数据并保存到顶点数组VBO，Associate out shader variables with our data buffer and variable
+    cubenumPoints=colorCube(1.0); 	
+    floornumPoints=plane(10.0);
+    skyboxnumPoints=colorCube(80); 
+    lampnumPoints=colorCube(0.05);
 
-	initArrayBuffer(gl, program, flatten(points), 4, gl.FLOAT, "vPosition");
-	initArrayBuffer(gl, program, flatten(normalsArray), 4, gl.FLOAT, "vNormal");
-	initArrayBuffer(gl, program, flatten(texCoordsArray), 2, gl.FLOAT, "vTexCoord");
+    initArrayBuffer(gl, program, flatten(points), 4, gl.FLOAT, "vPosition");
+    initArrayBuffer(gl, program, flatten(normalsArray), 4, gl.FLOAT, "vNormal");
+    initArrayBuffer(gl, program, flatten(texCoordsArray), 2, gl.FLOAT, "vTexCoord");
 
-	// generate fbo
-	var depthTextureSize = 1024;
-	depthTexture = gl.createTexture();
+    // generate fbo
+    var depthTextureSize = 1024;
+    depthTexture = gl.createTexture();
     gl.activeTexture(gl.TEXTURE2);
     gl.bindTexture(gl.TEXTURE_2D, depthTexture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT32F, depthTextureSize, depthTextureSize, 0, gl.DEPTH_COMPONENT, gl.FLOAT, null);
@@ -104,7 +160,7 @@ window.onload = function() {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-	
+    
     framebuffer = gl.createFramebuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
     framebuffer.width = depthTextureSize;
@@ -112,41 +168,99 @@ window.onload = function() {
 
     // Attach color buffer
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, depthTexture, 0);
-	gl.drawBuffers([gl.NONE]);
-	gl.readBuffer([gl.NONE]);
+    gl.drawBuffers([gl.NONE]);
+    gl.readBuffer([gl.NONE]);
 
-	// check for completeness
+    // check for completeness
     var status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
-    if(status != gl.FRAMEBUFFER_COMPLETE) alert('Frame Buffer Not Complete');
-	gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    if(status != gl.FRAMEBUFFER_COMPLETE) {
+        console.error("Framebuffer not complete! Status:", status);
+        alert('Frame Buffer Not Complete');
+    } else {
+        console.log("Framebuffer created successfully");
+    }
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
-	//texture
-	gl.useProgram(program);
-	var cubeTexImage = document.getElementById("cubeTexImage");
-	cubeTexture = configureTexture(cubeTexImage);
+    //texture - 配置纹理
+    console.log("=== Configuring textures ===");
+    gl.useProgram(program);
+    
+    if (cubeTexImage && planeTexImage) {
+        console.log("Creating cube texture...");
+        cubeTexture = configureTexture(cubeTexImage);
+        console.log("Cube texture created:", cubeTexture);
+        
+        console.log("Creating plane texture...");
+        planeTexture = configureTexture(planeTexImage);
+        console.log("Plane texture created:", planeTexture);
+        
+        // 检查纹理是否成功创建
+        if (!cubeTexture || !planeTexture) {
+            console.error("!!! Texture creation failed !!!");
+        } else {
+            console.log("✓ Both textures created successfully");
+        }
+    } else {
+        console.error("!!! Skipping texture creation due to missing image elements !!!");
+        // 创建备用纹理
+        console.log("Creating fallback textures...");
+        cubeTexture = gl.createTexture();
+        planeTexture = gl.createTexture();
+    }
 
-	var planeTexImage = document.getElementById("planeTexImage");
-	planeTexture = configureTexture(planeTexImage);
+    configurePhongModelMeterialParameters(program); 	
+    //生成立方体纹理对象并设置属性
+    configureCubeMap(program);
 
-	configurePhongModelMeterialParameters(program); 	
-	//生成立方体纹理对象并设置属性
-	configureCubeMap(program);
-
-	gl.useProgram(skyboxProgram);
-	configureCubeMap(skyboxProgram);
-	initArrayBuffer(gl, skyboxProgram, flatten(points), 4, gl.FLOAT, "vPosition");
-	
-	gl.useProgram(lampPorgram);
-	configurePhongModelMeterialParameters(lampPorgram);
-	initArrayBuffer(gl, lampPorgram, flatten(points), 4, gl.FLOAT, "vPosition");
-	//调用绘制函数
-	render();
+    gl.useProgram(skyboxProgram);
+    configureCubeMap(skyboxProgram);
+    initArrayBuffer(gl, skyboxProgram, flatten(points), 4, gl.FLOAT, "vPosition");
+    
+    gl.useProgram(lampPorgram);
+    configurePhongModelMeterialParameters(lampPorgram);
+    initArrayBuffer(gl, lampPorgram, flatten(points), 4, gl.FLOAT, "vPosition");
+    
+    // 调试: 检查所有WebGL错误
+    const error = gl.getError();
+    if (error !== gl.NO_ERROR) {
+        console.error("WebGL error after initialization:", error);
+    } else {
+        console.log("✓ No WebGL errors detected after initialization");
+    }
+    
+    console.log("=== Initialization complete. Starting first render ===");
+    //调用绘制函数
+    render();
+    
+    // 添加全局变量用于调试
+    window.gl = gl;
+    window.textures = {
+        cube: cubeTexture,
+        plane: planeTexture,
+        depth: depthTexture
+    };
+    
+    console.log("=== WebGL context and textures saved to window object for debugging ===");
+    console.log("- Access WebGL context with: window.gl");
+    console.log("- Access textures with: window.textures");
 }
 
 
 /******绘制函数render************/
-function render(){	
-    //清屏
+function render(){
+	
+	// 调试：检查纹理状态
+    if (window.textures) {
+        console.log("Active textures:", window.textures.length);
+    }
+    
+    // 调试：检查WebGL错误
+    const error = gl.getError();
+    if (error !== gl.NO_ERROR) {
+        console.error("WebGL error before rendering:", error);
+    }
+    
+	//清屏
 	gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
 
 	//shadow map
