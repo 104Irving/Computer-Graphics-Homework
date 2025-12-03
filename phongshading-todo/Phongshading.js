@@ -212,6 +212,16 @@ window.onload = function() {
     //生成立方体纹理对象并设置属性
     configureCubeMap(program);
 
+    // Add fog parameters
+    var fogColor = vec3(0.737255, 0.745098, 0.752941); // Same as clear color
+    var fogStart = 5.0;  // Start distance for fog
+    var fogEnd = 30.0;   // End distance for fog
+
+    gl.uniform3fv(gl.getUniformLocation(program, "fogColor"), flatten(fogColor));
+    gl.uniform1f(gl.getUniformLocation(program, "fogStart"), fogStart);
+    gl.uniform1f(gl.getUniformLocation(program, "fogEnd"), fogEnd);
+
+
     gl.useProgram(skyboxProgram);
     configureCubeMap(skyboxProgram);
     initArrayBuffer(gl, skyboxProgram, flatten(points), 4, gl.FLOAT, "vPosition");

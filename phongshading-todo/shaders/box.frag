@@ -16,6 +16,11 @@ uniform vec3 viewPos;
 uniform sampler2D diffuseTexture; // 纹理采样器
 uniform sampler2D depthTexture;   // 深度纹理用于阴影
 
+// Fog uniforms
+uniform vec3 fogColor;             // 雾的颜色
+uniform float fogStart;            // 雾效开始距离
+uniform float fogEnd;              // 雾效结束距离
+
 // Input from vertex shader
 in vec2 TexCoord;
 in vec3 FragPos;
@@ -65,6 +70,18 @@ float ShadowCalculation(vec4 fragPosLightSpace) {
     return 0.0; // 不在阴影中
 }
 
+// Fog calculation function
+float CalculateFogFactor() {
+    // 计算片段到相机的距离
+    float distance = length(FragPos - viewPos);
+    
+    // 线性雾效计算
+    float fogFactor = (fogEnd - distance) / (fogEnd - fogStart);
+    fogFactor = clamp(fogFactor, 0.0, 1.0);
+    
+    return fogFactor;
+}
+
 void main() {
     // 归一化法向量
     vec3 norm = normalize(Normal);
@@ -108,8 +125,14 @@ void main() {
     // 确保结果在合理范围内
     result = clamp(result, 0.0, 1.0);
     
+    // Calculate fog factor
+    float fogFactor = CalculateFogFactor();
+    
+    // Apply fog - mix between the calculated color and fog color based on fog factor
+    vec3 finalColor = mix(fogColor, result, fogFactor);
+    
     // 输出最终颜色
-    fragColor = vec4(result, 1.0);
+    fragColor = vec4(finalColor, 1.0);
     
     // 调试：如果片段完全黑色，添加一点颜色以便查看
     if (length(fragColor.rgb) < 0.05) {
